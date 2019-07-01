@@ -1,0 +1,20 @@
+# Define each array and then add it to the main one
+SUB_0=("name0" "value0" "option0")
+SUB_1=("name1" "value1" "option1")
+MAIN_ARRAY=(
+  SUB_0[@]
+  SUB_1[@]
+)
+
+# Loop and print it.  Using offset and length to extract values
+COUNT=${#MAIN_ARRAY[@]}
+echo "${COUNT}"
+for ((i=0; i<$COUNT; i++))
+do
+  NAME=${!MAIN_ARRAY[i]:0:1}
+  VALUE=${!MAIN_ARRAY[i]:1:1}
+  OPTION=${!MAIN_ARRAY[i]:1:2}
+  echo "NAME ${NAME}"
+  echo "VALUE ${VALUE}"
+  echo "OPTION ${OPTION}"
+done

@@ -1,0 +1,94 @@
+#!/bin/bash
+
+declare -A BOARD REVEALED#
+HEIGHT=16
+WIDTH=16
+BOMBNUM=40
+
+# This generates a random BOARD with specified size. BOARD is a matrix
+# where 1 in position (i,j) means there is a bomb in (i,j); conversely,
+# zeros represent positions without bombs.
+# (1,1) is at the top left of the screen.
+
+function make_board {
+for ((i=1;i<=HEIGHT;i++)) do
+    for ((j=1;j<=WIDTH;j++)) do
+	BOARD[$i,$j]=0
+	REVEALED[$i,$j]='X'
+    done
+done
+
+while [ ${BOMBNUM} -gt 0 ]
+do
+	X_POS=$(echo "${RANDOM}%${WIDTH} + 1" | bc)
+	Y_POS=$(echo "${RANDOM}%${HEIGHT} + 1" | bc)
+	if [[ BOARD[$X_POS,$Y_POS] -ne 1 ]]
+	then
+		BOARD[$X_POS,$Y_POS]=1
+		BOMBNUM=$(echo "${BOMBNUM} - 1" | bc)
+	fi
+
+done
+}
+
+function count_neighbors {
+    X_POS="${1}"
+    Y_POS="${2}"
+    BOMBS_AROUND=0
+    if [[ BOARD[$X_POS,$Y_POS] -eq 1 ]] # Returns -1 when a bomb is found
+    then
+	echo "-1"
+	exit 0
+    fi
+
+    # If there is no bomb on the spot, count how many bombs are around
+    for((i=0;i<3;i++)){
+	   for((j=0;j<3;j++)){
+		  X_SEARCH=$(echo "${X_POS}-1+${i}" | bc)
+		  Y_SEARCH=$(echo "${Y_POS}-1+${j}" | bc)
+		  if [[ BOARD[$X_SEARCH,$Y_SEARCH] -eq 1 ]]
+		  then
+		     BOMBS_AROUND=$(echo "${BOMBS_AROUND} + 1" | bc )
+		  fi
+
+	   }
+    }
+    echo "$BOMBS_AROUND"
+}
+
+make_board
+echo "${NUMBER}"
+
+f1="%$((${#HEIGHT}))s"
+f2="%4s"
+
+
+function draw_board {
+for ((i=1;i<=HEIGHT;i++)) do
+    printf "$f2" $i
+done
+echo
+for ((j=1;j<=WIDTH;j++)) do
+    printf "$f1" "$j"
+    for ((i=1;i<=HEIGHT;i++)) do
+        #printf "$f2" ${NUMBER}
+        #printf "$f2" ${BOARD[$i,$j]}
+        printf "$f2" ${REVEALED[$i,$j]}
+    done
+    echo
+done
+}
+
+while [[ 1 -eq 1 ]]
+do
+    tput clear
+    draw_board
+    echo -n "Enter a X,Y point to look for bombs: "
+    read X Y
+    REVEALED[$X,$Y]=$( count_neighbors $X $Y )
+    if [[ REVEALED[$X,$Y] -eq -1 ]]
+    then
+	echo "GAME OVER!"
+	exit 0
+    fi
+done
