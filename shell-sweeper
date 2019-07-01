@@ -1,9 +1,9 @@
 #!/bin/bash
 
 declare -A BOARD REVEALED
-HEIGHT=8
-WIDTH=8
-BOMBNUM=10
+HEIGHT=16
+WIDTH=30
+BOMBNUM=99
 
 #COLORS
 blue=$(tput setaf 4)
@@ -17,7 +17,7 @@ function make_board {
 for ((i=1;i<=HEIGHT;i++)) do
     for ((j=1;j<=WIDTH;j++)) do
 	BOARD[$i,$j]=0
-	REVEALED[$i,$j]='X'
+	REVEALED[$i,$j]='-'
     done
 done
 
@@ -38,11 +38,14 @@ done
 # of bombs in surrounding squares (returning a number) or return
 # -1 in case the square itself contains a bomb.
 function reveal_neighbors {
-    X_POS="${1}"
-    Y_POS="${2}"
+    X_POS="${2}"
+    Y_POS="${1}"
     BOMBS_AROUND=0
     if [[ BOARD[$X_POS,$Y_POS] -eq 1 ]] # Returns -1 when a bomb is found
     then
+	REVEALED[$X_POS,$Y_POS]='X'
+	tput clear
+	draw_board
 	echo "Game over!"
 	exit 0
     else
@@ -60,25 +63,32 @@ function reveal_neighbors {
 	   }
     fi
 
-	   REVEALED[$X_POS,$Y_POS]=$BOMBS_AROUND
+   REVEALED[$X_POS,$Y_POS]=$BOMBS_AROUND
 
-	   if [[ $BOMBS_AROUND -eq 0 ]]
-	   then
-	       echo "Found a zero!" >> log.txt
-	       for((i=0;i<3;i++)){ 
-		      for((j=0;j<3;j++)){
-			     X_SEARCH=$(echo "${X_POS}-1+${i}" | bc)
-			     Y_SEARCH=$(echo "${Y_POS}-1+${j}" | bc)
-			     echo "Looking for more on position: ${X_SEARCH} ${Y_SEARCH}" >> log.txt
-			     if [[ $X_SEARCH -gt 0 ]] && [[ $X_SEARCH -le $WIDTH ]] && [[ $Y_SEARCH -gt 0 ]] && [[ $Y_SEARCH -le $HEIGHT ]] && [[ REVEALED[$X_SEARCH,$Y_SEARCH] -eq 'X' ]]
-			     then
-				 reveal_neighbors ${X_SEARCH} ${Y_SEARCH}
-		             else
-				 echo "Discarding position $X_SEARCH $Y_SEARCH for OUT OF BOUNDS" >> log.txt
-			     fi
-			 }
-		  }
-	   fi
+   if [[ $BOMBS_AROUND -eq 0 ]]
+   then
+       echo "Found a zero!" >> log.txt
+       for((i=0;i<3;i++)){ 
+	      for((j=0;j<3;j++)){
+		     X_SEARCH=$(echo "${X_POS}-1+${i}" | bc)
+		     Y_SEARCH=$(echo "${Y_POS}-1+${j}" | bc)
+
+		     TEST1=[[ $X_SEARCH -gt 0 ]]
+		     TEST2=$([[ $X_SEARCH -le $WIDTH ]])
+		     TEST3=$([[ $Y_SEARCH -gt 0 ]])
+		     TEST4=$([[ $X_SEARCH -le $HEIGHT ]])
+		     TEST5=$([[ $REVEALED[$X_SEARCH,$Y_SEARCH] -eq '-'  ]])
+		     echo "Looking for more on position: ${X_SEARCH} ${Y_SEARCH}" >> log.txt
+		     echo "Tests: ${TEST1} ${TEST2} ${TEST3} ${TEST4} ${TEST5}" >> log.txt
+			     if [[ $X_SEARCH -gt 0 ]] && [[ $X_SEARCH -le $WIDTH ]] && [[ $Y_SEARCH -gt 0 ]] && [[ $Y_SEARCH -le $HEIGHT ]] && [[ $REVEALED[$X_SEARCH,$Y_SEARCH] -eq '-' ]]
+		     then
+			 reveal_neighbors ${X_SEARCH} ${Y_SEARCH}
+	             else
+			 echo "Discarding position $X_SEARCH $Y_SEARCH for OUT OF BOUNDS" >> log.txt
+		     fi
+		 }
+	  }
+   fi
 }
 
 # This prints the contents of the REVEALED matrix. REVEALED is the
@@ -103,6 +113,7 @@ done
 make_board
 echo "${NUMBER}"
 f1="%$((${#HEIGHT}))s"
+#f1="%4s"
 f2="%4s"
 
 
@@ -114,5 +125,5 @@ do
     draw_board # Redraw board everytime a command is given
     echo -n "Enter a X,Y point to reveal a square: "
     read X Y
-    reveal_neighbors $X $Y
+    reveal_neighbors $X $Y # Matrix is actually transposed
 done
