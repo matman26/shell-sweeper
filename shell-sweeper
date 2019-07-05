@@ -1,14 +1,46 @@
 #!/bin/bash
 
 declare -A BOARD REVEALED
-HEIGHT=16
-WIDTH=30
-BOMBNUM=99
+HEIGHT=8
+WIDTH=8
+BOMBNUM=10
+
+X=2
+Y=5
+
+# little helpers for terminal print control and key input
+ESC=$( printf "\033")
+cursor_blink_on()  { printf "$ESC[?25h"; }
+cursor_blink_off() { printf "$ESC[?25l"; }
+cursor_to()        { printf "$ESC[$1;${2:-1}H"; }
+print_option()     { printf "   $1 "; }
+print_selected()   { printf "  $ESC[7m $1 $ESC[27m"; }
 
 #COLORS
-blue=$(tput setaf 4)
-normal=$(tput sgr0)
+FBLACK="\033[30m"
+FRED="\033[31m"
+FGREEN="\033[32m"
+FYELLOW="\033[33m"
+FBLUE="\033[34m"
+FPURPLE="\033[35m"
+D_GREEN="\033[6m"
+FWHITE="\033[7m"
+FCYAN="\x1b[36m"
+NONE="\033[0m"
 
+function read_input {
+    read -s -n3 KEY 2>/dev/null >&2
+    if [[ $KEY = $ESC[D ]]; then Y=$(echo "${Y} - 4" | bc) ; fi
+    if [[ $KEY = $ESC[C ]]; then Y=$(echo "${Y} + 4" | bc) ; fi
+    if [[ $KEY = $ESC[A ]]; then X=$(echo "${X} - 1" | bc) ; fi
+    if [[ $KEY = $ESC[B ]]; then X=$(echo "${X} + 1" | bc) ; fi
+	if [[ $KEY = "" ]] ; then
+	    POSITION_X=$(echo "${X}${WIDTH}-1" | bc)
+	    POSITION_Y=$(echo "${Y}/4" | bc)
+	    reveal_neighbors $POSITION_X $POSITION_Y
+	fi
+
+}
 # This generates a random BOARD with specified size. BOARD is a matrix
 # where 1 in position (i,j) means there is a bomb in (i,j); conversely,
 # zeros represent positions without bombs.
@@ -34,6 +66,32 @@ do
 done
 }
 
+#function new_make_board {
+#
+#for ((i=1;i<=HEIGHT;i++)) do
+    #for ((j=1;j<=WIDTH;j++)) do
+	#BOARD[$i,$j]=0
+	#REVEALED[$i,$j]='-'
+    #done
+#done
+#
+#while [ ${BOMBNUM} -gt 0 ]
+#do
+	#X_POS=$(echo "${RANDOM}%${WIDTH} + 1" | bc)
+	#Y_POS=$(echo "${RANDOM}%${HEIGHT} + 1" | bc)
+	#if [[ BOARD[$X_POS,$Y_POS] -ne -1 ]]
+	#then
+		#BOARD[$X_POS,$Y_POS]=-1
+		#for i in `seq 1 3`
+			 #echo
+		#done
+		#BOMBNUM=$(echo "${BOMBNUM} - 1" | bc)
+	#fi
+#
+#done
+#
+#}
+
 # Given a specific X,Y coordinate, this will either count the number
 # of bombs in surrounding squares (returning a number) or return
 # -1 in case the square itself contains a bomb.
@@ -50,7 +108,7 @@ function reveal_neighbors {
 	exit 0
     else
     # If there is no bomb on the spot, count how many bombs are around
-	for((i=0;i<3;i++)){ 
+	for((i=0;i<3;i++)){
 	       for((j=0;j<3;j++)){
 		      X_SEARCH=$(echo "${X_POS}-1+${i}" | bc)
 		      Y_SEARCH=$(echo "${Y_POS}-1+${j}" | bc)
@@ -58,7 +116,7 @@ function reveal_neighbors {
 		      then
 			  BOMBS_AROUND=$(echo "${BOMBS_AROUND} + 1" | bc )
 		      fi
-		      
+
 		  }
 	   }
     fi
@@ -68,7 +126,7 @@ function reveal_neighbors {
    if [[ $BOMBS_AROUND -eq 0 ]]
    then
        echo "Found a zero!" >> log.txt
-       for((i=0;i<3;i++)){ 
+       for((i=0;i<3;i++)){
 	      for((j=0;j<3;j++)){
 		     X_SEARCH=$(echo "${X_POS}-1+${i}" | bc)
 		     Y_SEARCH=$(echo "${Y_POS}-1+${j}" | bc)
@@ -97,11 +155,11 @@ function reveal_neighbors {
 # with the number of surrounding bombs and printed to the screen.
 function draw_board {
 for ((i=1;i<=HEIGHT;i++)) do
-    printf "$f2" $i
+    printf "${FRED}${f2}${NONE}" $i
 done
 echo
 for ((j=1;j<=WIDTH;j++)) do
-    printf "$f1" "$j"
+    printf "${FRED}${f1}${NONE}" "$j"
     for ((i=1;i<=HEIGHT;i++)) do
         printf "$f2" ${REVEALED[$i,$j]}
     done
@@ -123,7 +181,10 @@ while [[ 1 -eq 1 ]]
 do
     tput clear
     draw_board # Redraw board everytime a command is given
-    echo -n "Enter a X,Y point to reveal a square: "
-    read X Y
-    reveal_neighbors $X $Y # Matrix is actually transposed
+    echo -n "Current X,Y are: $X,$Y"
+    #cursor_to "0" "0"
+    cursor_to "${X}" "${Y}"
+    read_input
+    #read X Y
+    #reveal_neighbors $X $Y # Matrix is actually transposed
 done
