@@ -1,9 +1,11 @@
 #!/bin/bash
 
-declare -A BOARD REVEALED HIDDEN
+declare -A BOARD REVEALED
 HEIGHT=8
 WIDTH=8
 BOMBNUM=10
+BOMBTOTAL=$BOMBNUM
+BOMBHISCORE=$BOMBNUM
 
 X=2
 Y=5
@@ -28,6 +30,16 @@ FWHITE="\033[7m"
 FCYAN="\x1b[36m"
 NONE="\033[0m"
 
+#OBJECTS
+SPACE="   "
+FLAG="${FRED}P${NONE}"
+
+
+function write_scores {
+	 read -p "Congratulations! Please type in your name for the highscores: " WINNER_NAME
+	 echo "${WINNER_NAME}:${1}:${2}:${BOMBHISCORE};" >> hiscores.txt
+}
+
 function read_input {
     read -s -n1 KEY 2>/dev/null >&2
     POSITION_X=$(echo "${X}-1" | bc)
@@ -38,12 +50,25 @@ function read_input {
     if [[ $KEY = 'j' ]]; then X=$(echo "${X} + 1" | bc) ; fi
     if [[ $KEY = 'a' ]] ; then reveal_neighbors $POSITION_X $POSITION_Y; fi
     if [[ $KEY = 's' ]] ; then mark_position $POSITION_X $POSITION_Y; fi
-    #if [[ $KEY = $ESC[D ]]; then Y=$(echo "${Y} - 4" | bc) ; fi
-    #if [[ $KEY = $ESC[C ]]; then Y=$(echo "${Y} + 4" | bc) ; fi
-    #if [[ $KEY = $ESC[A ]]; then X=$(echo "${X} - 1" | bc) ; fi
-    #if [[ $KEY = $ESC[B ]]; then X=$(echo "${X} + 1" | bc) ; fi
-    #if [[ $KEY = " " ]] ; then reveal_neighbors $POSITION_X $POSITION_Y; fi
-    #if [[ $KEY = "" ]] ; then reveal_neighbors $POSITION_X $POSITION_Y; fi
+    if [[ $KEY = 'q' ]] ; then exit_prompt ; fi
+}
+
+function exit_prompt {
+    tput clear
+    read -p "Do you really want to exit? [y,N] " EXITCHOICE
+
+    case "${EXITCHOICE}" in
+	y | Y)
+	    echo "Leaving!"
+	    exit 0
+	    ;;
+	n | N)
+	    echo
+	    ;;
+	*)
+	    echo
+	    ;;
+    esac
 
 }
 # This generates a random BOARD with specified size. BOARD is a matrix
@@ -55,7 +80,6 @@ for ((i=1;i<=HEIGHT;i++)) do
     for ((j=1;j<=WIDTH;j++)) do
 	BOARD[$i,$j]=0
 	REVEALED[$i,$j]='-'
-	HIDDEN[$i,$j]=0
     done
 done
 
@@ -70,32 +94,6 @@ do
 	fi
 
 done
-}
-
-function new_make_board {
-for ((i=1;i<=HEIGHT;i++)) do
-    for ((j=1;j<=WIDTH;j++)) do
-	BOARD[$i,$j]=0
-	REVEALED[$i,$j]='-'
-    done
-done
-
-while [ ${BOMBNUM} -gt 0 ]
-do
-	X_POS=$(echo "${RANDOM}%${WIDTH} + 1" | bc)
-	Y_POS=$(echo "${RANDOM}%${HEIGHT} + 1" | bc)
-	if [[ BOARD[$X_POS,$Y_POS] -ne -1 ]]
-	then
-		BOARD[$X_POS,$Y_POS]=-1
-		for i in `seq 1 3`
-		do
-			 echo
-		done
-		BOMBNUM=$(echo "${BOMBNUM} - 1" | bc)
-	fi
-
-done
-
 }
 
 # Given a specific X,Y coordinate, this will either count the number
@@ -147,6 +145,18 @@ function reveal_neighbors {
 
 	  return 0
 }
+function test_win {
+
+    if [[ $BOMBTOTAL -eq 0 ]]
+    then
+	tput clear
+	END=$(date +%s.%N)
+	DURATION=$(echo "${END} - ${START}" | bc -l )
+	echo "You won!"
+	write_scores "$DURATION" "${WIDTH}x${HEIGHT}"
+	exit 0
+    fi
+}
 
 function mark_position {
     X_TOMARK="${2}"
@@ -154,6 +164,10 @@ function mark_position {
     if [[ ${REVEALED[$X_TOMARK,$Y_TOMARK]} == '-' ]]
     then
 	REVEALED[$X_TOMARK,$Y_TOMARK]="${FRED}P${NONE}"
+	if [[ ${BOARD[$X_TOMARK,$Y_TOMARK]} == 1 ]]
+	   then
+	       BOMBTOTAL=$(echo "${BOMBTOTAL} - 1 " | bc)
+	   fi
     elif [[ ${REVEALED[$X_TOMARK,$Y_TOMARK]} == "${FRED}P${NONE}" ]]
     then
 	REVEALED[$X_TOMARK,$Y_TOMARK]="-"
@@ -174,10 +188,12 @@ for ((j=1;j<=WIDTH;j++)) do
     printf "${FRED}${f1}${NONE}" "$j"
     for ((i=1;i<=HEIGHT;i++)) do
         #printf "$f2" ${REVEALED[$i,$j]}
-	echo -ne "   ${REVEALED[$i,$j]}"
+	echo -ne "${SPACE}${REVEALED[$i,$j]}"
     done
     echo
 done
+    echo "Current BOMBTOTAL is: $BOMBTOTAL"
+    echo
 }
 
 
@@ -189,9 +205,11 @@ f2="%4s"
 
 
 
+START=$(date +%s.%N)
 # Main execution loop
 while [[ 1 -eq 1 ]]
 do
+    test_win
     tput clear
     draw_board # Redraw board everytime a command is given
     cursor_to "${X}" "${Y}"
