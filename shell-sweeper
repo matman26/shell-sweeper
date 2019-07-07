@@ -8,7 +8,7 @@ BOMBTOTAL=$BOMBNUM
 BOMBHISCORE=$BOMBNUM
 
 X=2
-Y=5
+Y=6
 
 # little helpers for terminal print control and key input
 ESC=$( printf "\033")
@@ -33,6 +33,14 @@ NONE="\033[0m"
 #OBJECTS
 SPACE="   "
 FLAG="${FRED}P${NONE}"
+ONE="${FBLUE}1${NONE}"
+TWO="${FGREEN}2${NONE}"
+THREE="${FRED}3${NONE}"
+FOUR="${FPURPLE}4${NONE}"
+FIVE="${FCYAN}5${NONE}"
+SIX="${FYELLOW}6${NONE}"
+SEVEN="${FBLACK}7${NONE}"
+EIGHT="${NONE}8${NONE}"
 
 
 function write_scores {
@@ -98,6 +106,29 @@ done
 
 }
 
+function retry_dialog {
+	
+	read -p "Game over! Try again? [Y/n/q]" RETRY_STATE
+    case $RETRY_STATE in
+	"y" | "Y" | "" ) 
+		BOMBNUM=$BOMBHISCORE
+		BOMBTOTAL=$BOMBNUM
+		make_board
+		X=2
+		Y=6
+		game_loop
+		;;
+	"n" | "N" )
+		main_menu
+		;;
+	"q" | "Q" )
+		exit 0
+		;;
+    esac
+		
+
+}
+
 # Given a specific X,Y coordinate, this will either count the number
 # of bombs in surrounding squares (returning a number) or return
 # -1 in case the square itself contains a bomb.
@@ -110,8 +141,7 @@ function reveal_neighbors {
 	REVEALED[$X_POS,$Y_POS]='X'
 	tput clear
 	draw_board
-	echo "Game over!"
-	exit 0
+	retry_dialog
     else
     # If there is no bomb on the spot, count how many bombs are around
 	for((i=0;i<3;i++)){
@@ -127,7 +157,26 @@ function reveal_neighbors {
 	   }
     fi
 
-   REVEALED[$X_POS,$Y_POS]=$BOMBS_AROUND
+   case $BOMBS_AROUND in
+   	1)
+   		REVEALED[$X_POS,$Y_POS]="$ONE"
+		;;
+   	2)
+   		REVEALED[$X_POS,$Y_POS]="$TWO"
+		;;
+   	3)
+   		REVEALED[$X_POS,$Y_POS]="$THREE"
+		;;
+   	4)
+   		REVEALED[$X_POS,$Y_POS]="$FOUR"
+		;;
+   	5)
+   		REVEALED[$X_POS,$Y_POS]="$FIVE"
+		;;
+   	*)
+   		REVEALED[$X_POS,$Y_POS]=$BOMBS_AROUND
+		;;
+  esac 
 
    if [[ $BOMBS_AROUND -eq 0 ]]
    then
@@ -174,7 +223,9 @@ function mark_position {
     elif [[ ${REVEALED[$X_TOMARK,$Y_TOMARK]} == "${FLAG}" ]]
     then
 	REVEALED[$X_TOMARK,$Y_TOMARK]="-"
-	BOMBTOTAL=$(echo "${BOMBTOTAL} + 1 " | bc)
+	if [[ ${BOARD[$X_TOMARK,$Y_TOMARK]} == "1" ]] ; then
+		BOMBTOTAL=$(echo "${BOMBTOTAL} + 1 " | bc)
+	fi
     fi
 
 }
@@ -208,8 +259,8 @@ function main_menu {
     tput setaf 1
     echo "Shell-sweeper"
     tput sgr0
-    tput cup 3 5
-    echo "Legend of the bash script"
+    tput cup 3 8
+    echo -e "$ONE $TWO $THREE $FOUR $FIVE $SIX $SEVEN $EIGHT $FLAG"
 
     tput cup 5 7
     echo "1 - Play game!"
@@ -272,11 +323,7 @@ function menu_choose_size {
 
 }
 
-
-# ----------------------------------------------------------------
-# MAIN RUNTIME BEGINS HERE
-main_menu
-make_board
+function game_loop {
 echo "${NUMBER}"
 f1="%$((${#HEIGHT}))s"
 #f1="%4s"
@@ -294,3 +341,12 @@ do
     cursor_to "${X}" "${Y}"
     read_input
 done
+}
+
+
+# ----------------------------------------------------------------
+# MAIN RUNTIME BEGINS HERE
+main_menu
+make_board
+game_loop 
+
