@@ -131,23 +131,21 @@ function reveal_neighbors {
 
    if [[ $BOMBS_AROUND -eq 0 ]]
    then
-       echo "Found a zero!" >> log.txt
        for((i=0;i<3;i++)){
 	      for((j=0;j<3;j++)){
 		     X_SEARCH=$(echo "${X_POS}-1+${i}" | bc)
 		     Y_SEARCH=$(echo "${Y_POS}-1+${j}" | bc)
-
-		     echo "Looking for more on position: ${X_SEARCH} ${Y_SEARCH}" >> log.txt
-		     echo "Tests: ${TEST1} ${TEST2} ${TEST3} ${TEST4} ${TEST5}" >> log.txt
-			     if [[ $X_SEARCH -gt 0 ]] && [[ $X_SEARCH -le $WIDTH ]] && [[ $Y_SEARCH -gt 0 ]] && [[ $Y_SEARCH -le $HEIGHT ]] && [[ ${REVEALED[$X_SEARCH,$Y_SEARCH]} -eq '-' ]] 
+			     if [[ $X_SEARCH -gt 0 ]] && [[ $X_SEARCH -le $WIDTH ]] && [[ $Y_SEARCH -gt 0 ]] && [[ $Y_SEARCH -le $HEIGHT ]] && [[ ${REVEALED[$X_SEARCH,$Y_SEARCH]} == '-' ]] 
 		     then
-			 reveal_neighbors ${X_SEARCH} ${Y_SEARCH}
+			 reveal_neighbors ${Y_SEARCH} ${X_SEARCH} 
 	             else
-			 echo "Discarding position $X_SEARCH $Y_SEARCH for OUT OF BOUNDS" >> log.txt
+			 echo "Discarding position $X_SEARCH $Y_SEARCH for OUT OF BOUNDS" &>> log.txt
 		     fi
 		 }
 	  }
    fi
+
+	  return 0
 }
 
 function mark_position {
@@ -155,8 +153,8 @@ function mark_position {
     Y_TOMARK="${1}"
     if [[ ${REVEALED[$X_TOMARK,$Y_TOMARK]} == '-' ]]
     then
-	REVEALED[$X_TOMARK,$Y_TOMARK]="P"
-    elif [[ ${REVEALED[$X_TOMARK,$Y_TOMARK]} == 'P' ]]
+	REVEALED[$X_TOMARK,$Y_TOMARK]="${FRED}P${NONE}"
+    elif [[ ${REVEALED[$X_TOMARK,$Y_TOMARK]} == "${FRED}P${NONE}" ]]
     then
 	REVEALED[$X_TOMARK,$Y_TOMARK]="-"
     fi
@@ -175,7 +173,8 @@ echo
 for ((j=1;j<=WIDTH;j++)) do
     printf "${FRED}${f1}${NONE}" "$j"
     for ((i=1;i<=HEIGHT;i++)) do
-        printf "$f2" ${REVEALED[$i,$j]}
+        #printf "$f2" ${REVEALED[$i,$j]}
+	echo -ne "   ${REVEALED[$i,$j]}"
     done
     echo
 done
