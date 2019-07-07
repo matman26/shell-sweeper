@@ -71,11 +71,13 @@ function exit_prompt {
     esac
 
 }
+
 # This generates a random BOARD with specified size. BOARD is a matrix
 # where 1 in position (i,j) means there is a bomb in (i,j); conversely,
 # zeros represent positions without bombs.
 # (1,1) is at the top left of the screen.
 function make_board {
+
 for ((i=1;i<=HEIGHT;i++)) do
     for ((j=1;j<=WIDTH;j++)) do
 	BOARD[$i,$j]=0
@@ -85,15 +87,15 @@ done
 
 while [ ${BOMBNUM} -gt 0 ]
 do
-	X_POS=$(echo "${RANDOM}%${WIDTH} + 1" | bc)
-	Y_POS=$(echo "${RANDOM}%${HEIGHT} + 1" | bc)
-	if [[ BOARD[$X_POS,$Y_POS] -ne 1 ]]
-	then
-		BOARD[$X_POS,$Y_POS]=1
-		BOMBNUM=$(echo "${BOMBNUM} - 1" | bc)
-	fi
-
+    X_POS=$(echo "${RANDOM}%${WIDTH} + 1" | bc)
+    Y_POS=$(echo "${RANDOM}%${HEIGHT} + 1" | bc)
+    if [[ BOARD[$X_POS,$Y_POS] -ne 1 ]]
+    then
+	BOARD[$X_POS,$Y_POS]=1
+	BOMBNUM=$(echo "${BOMBNUM} - 1" | bc)
+    fi
 done
+
 }
 
 # Given a specific X,Y coordinate, this will either count the number
@@ -133,9 +135,9 @@ function reveal_neighbors {
 	      for((j=0;j<3;j++)){
 		     X_SEARCH=$(echo "${X_POS}-1+${i}" | bc)
 		     Y_SEARCH=$(echo "${Y_POS}-1+${j}" | bc)
-			     if [[ $X_SEARCH -gt 0 ]] && [[ $X_SEARCH -le $WIDTH ]] && [[ $Y_SEARCH -gt 0 ]] && [[ $Y_SEARCH -le $HEIGHT ]] && [[ ${REVEALED[$X_SEARCH,$Y_SEARCH]} == '-' ]] 
+			     if [[ $X_SEARCH -gt 0 ]] && [[ $X_SEARCH -le $WIDTH ]] && [[ $Y_SEARCH -gt 0 ]] && [[ $Y_SEARCH -le $HEIGHT ]] && [[ ${REVEALED[$X_SEARCH,$Y_SEARCH]} == '-' ]]
 		     then
-			 reveal_neighbors ${Y_SEARCH} ${X_SEARCH} 
+			 reveal_neighbors ${Y_SEARCH} ${X_SEARCH}
 	             else
 			 echo "Discarding position $X_SEARCH $Y_SEARCH for OUT OF BOUNDS" &>> log.txt
 		     fi
@@ -145,6 +147,7 @@ function reveal_neighbors {
 
 	  return 0
 }
+
 function test_win {
 
     if [[ $BOMBTOTAL -eq 0 ]]
@@ -163,16 +166,17 @@ function mark_position {
     Y_TOMARK="${1}"
     if [[ ${REVEALED[$X_TOMARK,$Y_TOMARK]} == '-' ]]
     then
-	REVEALED[$X_TOMARK,$Y_TOMARK]="${FRED}P${NONE}"
+	REVEALED[$X_TOMARK,$Y_TOMARK]="${FLAG}"
 	if [[ ${BOARD[$X_TOMARK,$Y_TOMARK]} == 1 ]]
 	   then
 	       BOMBTOTAL=$(echo "${BOMBTOTAL} - 1 " | bc)
 	   fi
-    elif [[ ${REVEALED[$X_TOMARK,$Y_TOMARK]} == "${FRED}P${NONE}" ]]
+    elif [[ ${REVEALED[$X_TOMARK,$Y_TOMARK]} == "${FLAG}" ]]
     then
 	REVEALED[$X_TOMARK,$Y_TOMARK]="-"
+	BOMBTOTAL=$(echo "${BOMBTOTAL} + 1 " | bc)
     fi
-	
+
 }
 
 # This prints the contents of the REVEALED matrix. REVEALED is the
@@ -184,8 +188,10 @@ for ((i=1;i<=HEIGHT;i++)) do
     printf "${FRED}${f2}${NONE}" $i
 done
 echo
+#for j in `seq -w 1 ${WIDTH}` ; do
 for ((j=1;j<=WIDTH;j++)) do
-    printf "${FRED}${f1}${NONE}" "$j"
+    if [[ $j -lt 10 ]] ; then printf "${FRED}${f1}${NONE}" "0$j"
+    else printf "${FRED}${f1}${NONE}" "$j" ; fi
     for ((i=1;i<=HEIGHT;i++)) do
         #printf "$f2" ${REVEALED[$i,$j]}
 	echo -ne "${SPACE}${REVEALED[$i,$j]}"
@@ -196,7 +202,80 @@ done
     echo
 }
 
+function main_menu {
+    tput clear
+    tput cup 2 10
+    tput setaf 1
+    echo "Shell-sweeper"
+    tput sgr0
+    tput cup 3 5
+    echo "Legend of the bash script"
 
+    tput cup 5 7
+    echo "1 - Play game!"
+    tput cup 6 7
+    echo "2 - View highest scores!"
+    tput cup 7 7
+    echo "3 - Quit!"
+
+    tput cup 9 7
+    read -p "Enter your choice: " MENU_INPUT
+
+    case $MENU_INPUT in
+	"1") menu_choose_size ;;
+	"2") hiscore_screen ;;
+	"3") echo "Leaving! " ; exit 0 ;;
+	*) main_menu ;;
+    esac
+
+}
+
+function menu_choose_size {
+    tput clear
+    tput cup 3 5
+    echo "Choose your difficulty!"
+
+    tput cup 5 7
+    echo "1 - Easy: 8x8, 10 bombs"
+    tput cup 6 7
+    echo "2 - Medium: 16x8, 40 bombs"
+    tput cup 7 7
+    echo "3 - Hard: 16x16, 99 bombs"
+
+    tput cup 9 7
+    read -p "Enter your choice: " MENU_INPUT
+
+    case $MENU_INPUT in
+	"1")
+	    WIDTH=8
+	    HEIGHT=8
+	    BOMBNUM=10
+	    BOMBTOTAL=$BOMBNUM
+	    BOMBHISCORE=$BOMBNUM
+	    ;;
+	"2")
+	    WIDTH=16
+	    HEIGHT=8
+	    BOMBNUM=40
+	    BOMBTOTAL=$BOMBNUM
+	    BOMBHISCORE=$BOMBNUM
+	    ;;
+	"3") 
+	    WIDTH=16
+	    HEIGHT=16
+	    BOMBNUM=99
+	    BOMBTOTAL=$BOMBNUM
+	    BOMBHISCORE=$BOMBNUM
+	    ;;
+	*) main_menu ;;
+    esac
+
+}
+
+
+# ----------------------------------------------------------------
+# MAIN RUNTIME BEGINS HERE
+main_menu
 make_board
 echo "${NUMBER}"
 f1="%$((${#HEIGHT}))s"
@@ -205,7 +284,7 @@ f2="%4s"
 
 
 
-START=$(date +%s.%N)
+START=$(date +%s.%N) # For keeping scores
 # Main execution loop
 while [[ 1 -eq 1 ]]
 do
@@ -214,6 +293,4 @@ do
     draw_board # Redraw board everytime a command is given
     cursor_to "${X}" "${Y}"
     read_input
-    #read X Y
-    #reveal_neighbors $X $Y # Matrix is actually transposed
 done
