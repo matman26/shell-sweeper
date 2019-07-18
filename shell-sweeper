@@ -42,6 +42,57 @@ SIX="${FYELLOW}6${NONE}"
 SEVEN="${FBLACK}7${NONE}"
 EIGHT="${NONE}8${NONE}"
 
+function help_dialog {
+if [[ $1 -eq 1 ]]
+then
+	HELPROW=2
+        OFFSET=$(echo "$HEIGHT*5" | bc )
+	#tput clear
+	tput cup "$HELPROW" "$OFFSET" 
+	echo -ne "+============================+"
+	HELPROW=$(echo "$HELPROW + 1" | bc)
+	tput cup "$HELPROW" "$OFFSET"
+	echo -ne "|            HELP            |"
+	HELPROW=$(echo "$HELPROW + 1" | bc)
+	tput cup "$HELPROW" "$OFFSET"
+	echo -ne "|                            |"
+	HELPROW=$(echo "$HELPROW + 1" | bc)
+	tput cup "$HELPROW" "$OFFSET"
+	echo -ne "|          MOVEMENT          |"
+	HELPROW=$(echo "$HELPROW + 1" | bc)
+	tput cup "$HELPROW" "$OFFSET"
+	echo -ne "|             k              |"
+	HELPROW=$(echo "$HELPROW + 1" | bc)
+	tput cup "$HELPROW" "$OFFSET"
+	echo -ne "|             UP             |"
+	HELPROW=$(echo "$HELPROW + 1" | bc)
+	tput cup "$HELPROW" "$OFFSET"
+	echo -ne "|      h LEFT   RIGHT l      |"
+	HELPROW=$(echo "$HELPROW + 1" | bc)
+	tput cup "$HELPROW" "$OFFSET"
+	echo -ne "|            DOWN            |"
+	HELPROW=$(echo "$HELPROW + 1" | bc)
+	tput cup "$HELPROW" "$OFFSET"
+	echo -ne "|             j              |"
+	HELPROW=$(echo "$HELPROW + 1" | bc)
+	tput cup "$HELPROW" "$OFFSET"
+	echo -ne "|                            |"
+	HELPROW=$(echo "$HELPROW + 1" | bc)
+	tput cup "$HELPROW" "$OFFSET"
+	echo -ne "|   a-reveal square          |"
+	HELPROW=$(echo "$HELPROW + 1" | bc)
+	tput cup "$HELPROW" "$OFFSET"
+	echo -ne "|   s-flag bombs             |"
+	HELPROW=$(echo "$HELPROW + 1" | bc)
+	tput cup "$HELPROW" "$OFFSET"
+	echo -ne "|   q-quit game              |"
+	HELPROW=$(echo "$HELPROW + 1" | bc)
+	tput cup "$HELPROW" "$OFFSET"
+	echo -ne "+============================+"
+else
+	echo
+fi
+}
 
 function write_scores {
 	 read -p "Congratulations! Please type in your name for the highscores: " WINNER_NAME
@@ -67,7 +118,7 @@ function exit_prompt {
 
     case "${EXITCHOICE}" in
 	y | Y)
-	    echo "Leaving!"
+	    tput clear
 	    exit 0
 	    ;;
 	n | N)
@@ -107,7 +158,6 @@ done
 }
 
 function retry_dialog {
-	
 	read -p "Game over! Try again? [Y/n/q]" RETRY_STATE
     case $RETRY_STATE in
 	"y" | "Y" | "" ) 
@@ -122,6 +172,7 @@ function retry_dialog {
 		main_menu
 		;;
 	"q" | "Q" )
+	        tput clear
 		exit 0
 		;;
     esac
@@ -180,21 +231,22 @@ function reveal_neighbors {
 
    if [[ $BOMBS_AROUND -eq 0 ]]
    then
-       for((i=0;i<3;i++)){
-	      for((j=0;j<3;j++)){
-		     X_SEARCH=$(echo "${X_POS}-1+${i}" | bc)
-		     Y_SEARCH=$(echo "${Y_POS}-1+${j}" | bc)
-			     if [[ $X_SEARCH -gt 0 ]] && [[ $X_SEARCH -le $WIDTH ]] && [[ $Y_SEARCH -gt 0 ]] && [[ $Y_SEARCH -le $HEIGHT ]] && [[ ${REVEALED[$X_SEARCH,$Y_SEARCH]} == '-' ]]
-		     then
-			 reveal_neighbors ${Y_SEARCH} ${X_SEARCH}
-	             else
-			 echo "Discarding position $X_SEARCH $Y_SEARCH for OUT OF BOUNDS" &>> log.txt
-		     fi
-		 }
-	  }
-   fi
 
-	  return 0
+   for((i=0;i<3;i++)){
+      for((j=0;j<3;j++)){
+	     X_SEARCH=$(echo "${X_POS}-1+${i}" | bc)
+	     Y_SEARCH=$(echo "${Y_POS}-1+${j}" | bc)
+    	     #if [[ $X_SEARCH -gt 0 ]] && [[ $X_SEARCH -le $WIDTH ]] && [[ $Y_SEARCH -gt 0 ]] && [[ $Y_SEARCH -le $HEIGHT ]] && [[ ${REVEALED[$X_SEARCH,$Y_SEARCH]} == '-' ]]
+	     if [[ ${REVEALED[$X_SEARCH,$Y_SEARCH]} == '-' ]]
+	     then
+		 reveal_neighbors ${Y_SEARCH} ${X_SEARCH}
+	     fi
+	 }
+  }
+  fi 
+
+  return 1
+
 }
 
 function test_win {
@@ -249,8 +301,10 @@ for ((j=1;j<=WIDTH;j++)) do
     done
     echo
 done
-    echo "Current BOMBTOTAL is: $BOMBTOTAL"
+    #echo "Current BOMBTOTAL is: $BOMBTOTAL"
     echo
+
+    help_dialog 1
 }
 
 function main_menu {
@@ -289,9 +343,9 @@ function menu_choose_size {
     tput cup 5 7
     echo "1 - Easy: 8x8, 10 bombs"
     tput cup 6 7
-    echo "2 - Medium: 16x8, 40 bombs"
+    echo "2 - Medium: 16x16, 40 bombs"
     tput cup 7 7
-    echo "3 - Hard: 16x16, 99 bombs"
+    echo "3 - Hard: 30x16, 99 bombs"
 
     tput cup 9 7
     read -p "Enter your choice: " MENU_INPUT
@@ -306,13 +360,13 @@ function menu_choose_size {
 	    ;;
 	"2")
 	    WIDTH=16
-	    HEIGHT=8
+	    HEIGHT=16
 	    BOMBNUM=40
 	    BOMBTOTAL=$BOMBNUM
 	    BOMBHISCORE=$BOMBNUM
 	    ;;
 	"3") 
-	    WIDTH=16
+	    WIDTH=30
 	    HEIGHT=16
 	    BOMBNUM=99
 	    BOMBTOTAL=$BOMBNUM
